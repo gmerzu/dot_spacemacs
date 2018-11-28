@@ -68,6 +68,10 @@ values."
      docker
      games
      themes-megapack
+     pdf-tools
+     rebox
+     search-engine
+     ;; wakatime
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -82,6 +86,13 @@ values."
                                       all-the-icons
                                       all-the-icons-dired
                                       spaceline-all-the-icons
+                                      cquery
+                                      ccls
+                                      lsp-clangd
+                                      lsp-ruby
+                                      lsp-python
+                                      lsp-ui
+                                      company-lsp
                                       )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -353,6 +364,76 @@ you should place your code here."
   ;; Disable ido-mode when helm is used (fixes the warning).
   (ido-mode -1)
 
+  ;; Enable LSP UI.
+  (add-hook 'lsp-mode-hook 'lsp-ui-mode)
+
+  ;; Output the project root warning as a message and not to the *Warnings* buffer.
+  (setq lsp-message-project-root-warning t)
+
+  ;; Enable LSP for C/C++ using cquery.
+  ;; (setq cquery-executable "~/GitHub/cquery/build/release/bin/cquery")
+  ;; (setq cquery-extra-init-params '(:index (:comments 2) :cacheFormat "msgpack" :completion (:detailedLabel t)))
+  ;; (setq cquery-cache-dir "~/.emacs.d/.cache/cquery_cached_index/")
+  ;; (setq cquery-extra-args '("--log-file=~/.emacs.d/.cache/cquery.log"))
+  ;; (add-hook 'c-mode-common-hook
+  ;;           '(lambda ()
+  ;;              (lsp-cquery-enable)
+  ;;              (setq-local company-transformers nil)
+  ;;              (setq company-lsp-async t company-lsp-cache-candidates nil)
+  ;;              ))
+
+  ;; Enable LSP for C/C++ using ccls.
+  ;; (setq ccls-executable "~/GitHub/ccls/build/release/bin/ccls")
+  ;; (setq ccls-extra-init-params '(:index (:comments 2) "cacheFormat": "binary" :completion (:detailedLabel t)))
+  ;; (setq ccls-cache-dir "~/.emacs.d/.cache/ccls_cached_index")
+  ;; (setq ccls-extra-args (list (format "--log-file=%s" (expand-file-name "~/.emacs.d/.cache/ccls.log"))))
+  ;; (add-hook 'c-mode-common-hook
+  ;;           '(lambda ()
+  ;;              (lsp-ccls-enable)
+  ;;              (setq-local company-transformers nil)
+  ;;              (setq company-lsp-async t company-lsp-cache-candidates nil)
+  ;;              ))
+
+  ;; Enable LSP for C/C++ using clangd.
+  (add-hook 'c-mode-hook
+            '(lambda ()
+               (require 'lsp-clangd)
+               (lsp-clangd-c-enable)))
+  (add-hook 'c++-mode-hook
+            '(lambda ()
+               (require 'lsp-clangd)
+               (lsp-clangd-c++-enable)))
+  (add-hook 'objc-mode-hook
+            '(lambda ()
+               (require 'lsp-clangd)
+               (lsp-clangd-objc-enable)))
+
+  ;; Enable LSP for Ruby using solargraph.
+  (add-hook 'ruby-mode-hook
+            '(lambda()
+               (require 'lsp-ruby)
+               (lsp-ruby-enable)
+               (setq-local company-transformers nil)
+               (setq company-lsp-async t company-lsp-cache-candidates nil)
+               ))
+
+  ;; Enable LSP for Python using python-language-server.
+  (add-hook 'python-mode-hook
+            '(lambda()
+               (require 'lsp-python)
+               (lsp-python-enable)
+               (setq-local company-transformers nil)
+               (setq company-lsp-async t company-lsp-cache-candidates nil)
+               ))
+
+  ;; Start auto-completion by "S-SPC" and "\C-c SPC",
+  ;; and add company-lsp to backends.
+  (add-hook 'company-mode-hook
+            '(lambda ()
+               (add-to-list 'company-backends 'company-lsp)
+               (global-set-key (kbd "S-SPC") 'company-complete)
+               (global-set-key (kbd "\C-c SPC") 'company-complete)))
+
   ;; Use tabs globally.
   ;; (setq-default indent-tabs-mode t
   ;;               tab-width 4)
@@ -401,6 +482,9 @@ you should place your code here."
   ;;       (abbreviate-file-name (buffer-file-name))
   ;;     (powerline-buffer-id)))
 
+  ;; Use hybrid indexing method for projectile.
+  (setq projectile-indexing-method 'hybrid)
+
   ;; Add support to interact with X-clipboard.
   (defun copy-to-clipboard ()
     "Copies selection to x-clipboard."
@@ -436,12 +520,6 @@ you should place your code here."
 
   ;; Map "=" to indent region (as "C-M-\" does).
   (define-key evil-normal-state-map (kbd "=") 'indent-region)
-
-  ;; Start auto-completion by "S-SPC" and "\C-c SPC".
-  (add-hook 'company-mode-hook
-            '(lambda ()
-               (global-set-key (kbd "S-SPC") 'company-complete)
-               (global-set-key (kbd "\C-c SPC") 'company-complete)))
 
   ;; Function for colorizing.
   (defun colorize-buffer ()
@@ -493,8 +571,9 @@ you should place your code here."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(all-the-icons-dired spaceline-all-the-icons typit mmt sudoku pacmacs 2048-game docker tablist docker-tramp dockerfile-mode all-the-icons memoize kaolin-themes csv-mode yaml-mode company-auctex auctex-latexmk auctex yasnippet-snippets zenburn-theme zen-and-art-theme white-sand-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme dracula-theme django-theme darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme insert-shebang fish-mode company-shell projectile-rails inflections feature-mode web-mode web-beautify tagedit slim-mode scss-mode sass-mode pug-mode livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc helm-css-scss haml-mode emmet-mode company-web web-completion-data company-tern tern coffee-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter diff-hl editorconfig xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help gh-md chruby rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest bundler inf-ruby markdown-toc markdown-mode flycheck-pos-tip pos-tip flyspell-correct-helm flyspell-correct auto-dictionary flycheck undohist mmm-mode python simpleclip xclip dtrt-indent smart-tabs-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode company-anaconda anaconda-mode pythonic unfill mwim ranger smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub treepy graphql with-editor disaster company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
- '(paradox-github-token t))
+   '(lsp-clangd ccls persp-projectile perspective wakatime-mode rebox2 pdf-tools engine-mode lsp-python lsp-ruby company-lsp lsp-ui cquery lsp-mode all-the-icons-dired spaceline-all-the-icons typit mmt sudoku pacmacs 2048-game docker tablist docker-tramp dockerfile-mode all-the-icons memoize kaolin-themes csv-mode yaml-mode company-auctex auctex-latexmk auctex yasnippet-snippets zenburn-theme zen-and-art-theme white-sand-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme dracula-theme django-theme darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme insert-shebang fish-mode company-shell projectile-rails inflections feature-mode web-mode web-beautify tagedit slim-mode scss-mode sass-mode pug-mode livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc helm-css-scss haml-mode emmet-mode company-web web-completion-data company-tern tern coffee-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter diff-hl editorconfig xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help gh-md chruby rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest bundler inf-ruby markdown-toc markdown-mode flycheck-pos-tip pos-tip flyspell-correct-helm flyspell-correct auto-dictionary flycheck undohist mmm-mode python simpleclip xclip dtrt-indent smart-tabs-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode company-anaconda anaconda-mode pythonic unfill mwim ranger smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub treepy graphql with-editor disaster company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
+ '(paradox-github-token t)
+ '(safe-local-variable-values '((dtrt-indent-mode . t))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
