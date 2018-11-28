@@ -37,24 +37,52 @@ values."
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
      helm
-     ;; auto-completion
-     ;; better-defaults
+     auto-completion
+     better-defaults
+     ranger
+     git
      emacs-lisp
-     ;; git
-     ;; markdown
+     (c-c++ :variables
+            c-c++-enable-clang-support t
+            c-c++-default-mode-for-headers 'c++-mode)
+     python
+     (ruby :variables ruby-version-manager 'rbenv)
+     ruby-on-rails
+     markdown
+     html
+     javascript
+     shell-scripts
+     latex
+     yaml
+     csv
      ;; org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
-     ;; spell-checking
-     ;; syntax-checking
-     ;; version-control
+     (shell :variables
+            shell-default-height 30
+            shell-default-position 'bottom)
+     spell-checking
+     syntax-checking
+     (version-control :variables
+                      version-control-diff-tool 'diff-hl
+                      version-control-diff-side 'left
+                      version-control-global-margin t)
+     docker
+     games
+     themes-megapack
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(
+                                      smart-tabs-mode
+                                      dtrt-indent
+                                      editorconfig
+                                      yasnippet-snippets
+                                      simpleclip
+                                      all-the-icons
+                                      all-the-icons-dired
+                                      spaceline-all-the-icons
+                                      )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -227,7 +255,7 @@ values."
    ;; If non nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
    ;; (default nil) (Emacs 24.4+ only)
-   dotspacemacs-maximized-at-startup nil
+   dotspacemacs-maximized-at-startup t
    ;; A value from the range (0..100), in increasing opacity, which describes
    ;; the transparency level of a frame when it's active or selected.
    ;; Transparency can be toggled through `toggle-transparency'. (default 90)
@@ -300,6 +328,15 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
+
+  ;; Disable warning about PATH variable.
+  (setq exec-path-from-shell-check-startup-files nil)
+
+  ;; Enable installation of packages from MELPA.
+  (add-to-list 'package-archives
+               '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/") t)
   )
 
 (defun dotspacemacs/user-config ()
@@ -309,7 +346,177 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
+
+  ;; Disable Emacs mouse commands (use xterm ones).
+  (xterm-mouse-mode -1)
+
+  ;; Disable ido-mode when helm is used (fixes the warning).
+  (ido-mode -1)
+
+  ;; Use tabs globally.
+  ;; (setq-default indent-tabs-mode t
+  ;;               tab-width 4)
+
+  ;; Use tabs for C/C++ !!!
+  (add-hook 'c-mode-common-hook
+            '(lambda ()
+               (setq c-basic-offset 4
+                     tab-width 4
+                     indent-tabs-mode t)
+               ))
+
+  ;; Use BSD code style for C/C++.
+  (setq c-default-style "bsd")
+
+  ;; Use All-The-Icons for NeoTree.
+  (setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+
+  ;; Use All-The-Icons for Dired.
+  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+
+  ;; Enable adaptive indentation.
+  (dtrt-indent-global-mode)
+  (dtrt-indent-adapt)
+
+  ;; Automatically save and restore undo-tree history.
+  (setq undo-tree-auto-save-history t)
+  (setq undo-tree-history-directory-alist '((".+" . "~/.emacs.d/.cache/undo-tree/")))
+
+  ;; Enable support of ".editorconfig".
+  (editorconfig-mode)
+
+  ;; Enable Smart Tabs for these languages.
+  (smart-tabs-insinuate 'c 'c++ 'javascript)
+
+  ;; Show line numbers by default and remap spacemacs' "SPC t n" bind.
+  (global-display-line-numbers-mode)
+  (spacemacs/set-leader-keys "tn" 'display-line-numbers-mode)
+
+  ;; Disable line-numbers minor mode for NeoTree.
+  (add-hook 'neo-after-create-hook '(lambda (&rest _) (display-line-numbers-mode -1)))
+
+  ;; Show full path for file buffer name.
+  ;; (spaceline-define-segment buffer-id
+  ;;   (if (buffer-file-name)
+  ;;       (abbreviate-file-name (buffer-file-name))
+  ;;     (powerline-buffer-id)))
+
+  ;; Add support to interact with X-clipboard.
+  (defun copy-to-clipboard ()
+    "Copies selection to x-clipboard."
+    (interactive)
+    (if (display-graphic-p)
+        (progn
+          (message "Yanked region to x-clipboard!")
+          (call-interactively 'clipboard-kill-ring-save)
+          )
+      (if (region-active-p)
+          (progn
+            (shell-command-on-region (region-beginning) (region-end) "xsel -i")
+            (message "Yanked region to clipboard!")
+            (deactivate-mark))
+        (message "No region active; can't yank to clipboard!")))
+    )
+  (defun paste-from-clipboard ()
+    "Pastes from x-clipboard."
+    (interactive)
+    (if (display-graphic-p)
+        (progn
+          (clipboard-yank)
+          (message "graphics active")
+          )
+      (insert (shell-command-to-string "xsel -o"))
+      )
+    )
+  (spacemacs/set-leader-keys "xy" 'copy-to-clipboard "xp" 'paste-from-clipboard)
+  (simpleclip-mode)
+
+  ;; Map "U" to redo.
+  (define-key evil-normal-state-map (kbd "U") 'redo)
+
+  ;; Map "=" to indent region (as "C-M-\" does).
+  (define-key evil-normal-state-map (kbd "=") 'indent-region)
+
+  ;; Start auto-completion by "S-SPC" and "\C-c SPC".
+  (add-hook 'company-mode-hook
+            '(lambda ()
+               (global-set-key (kbd "S-SPC") 'company-complete)
+               (global-set-key (kbd "\C-c SPC") 'company-complete)))
+
+  ;; Function for colorizing.
+  (defun colorize-buffer ()
+    (interactive)
+    (toggle-read-only)
+    (ansi-color-apply-on-region (point-min) (point-max))
+    (toggle-read-only))
+
+  ;; Colorize magit status.
+  (defadvice magit-status (after my-magit-status-dispatch-popup)
+    (colorize-buffer))
+
+  ;; Change some minor-mode lighters.
+  (diminish 'editorconfig-mode " ⟦ec⟧")
+  (diminish 'dtrt-indent-mode " ⟦di⟧")
+
+  ;; Enable All-The-Icons-Theme integration in spaceline.
+  (spaceline-all-the-icons-theme)
+  (spaceline-all-the-icons--setup-anzu)
+  (spaceline-all-the-icons--setup-package-updates)
+  (spaceline-all-the-icons--setup-git-ahead)
+  (spaceline-all-the-icons--setup-paradox)
+  (spaceline-all-the-icons--setup-neotree)
+  (spaceline-toggle-all-the-icons-bookmark-on)
+  ;; (spaceline-toggle-all-the-icons-dedicated-on)
+  ;; (spaceline-toggle-all-the-icons-fullscreen-on)
+  ;; (spaceline-toggle-all-the-icons-buffer-position-on)
+  ;; (spaceline-toggle-all-the-icons-narrowed-on)
+  (spaceline-toggle-all-the-icons-text-scale-on)
+  (spaceline-toggle-all-the-icons-region-info-on)
+  (spaceline-toggle-all-the-icons-package-updates-on)
+  (spaceline-toggle-all-the-icons-mode-icon-on)
+  (spaceline-toggle-all-the-icons-git-status-on)
+  (spaceline-toggle-all-the-icons-vc-icon-on)
+  (spaceline-toggle-all-the-icons-flycheck-status-on)
+  (setq spaceline-all-the-icons-separator-type 'arrow)
+  (setq spaceline-all-the-icons-highlight-file-name t)
+  (setq spaceline-all-the-icons-icon-set-window-numbering 'square)
+  (setq spaceline-all-the-icons-icon-set-eyebrowse-slot 'square)
+  ;; (setq spaceline-all-the-icons-flycheck-alternate t)
+  ;; (setq spaceline-all-the-icons-file-name-highlight "#ffff00")
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(all-the-icons-dired spaceline-all-the-icons typit mmt sudoku pacmacs 2048-game docker tablist docker-tramp dockerfile-mode all-the-icons memoize kaolin-themes csv-mode yaml-mode company-auctex auctex-latexmk auctex yasnippet-snippets zenburn-theme zen-and-art-theme white-sand-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme dracula-theme django-theme darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme insert-shebang fish-mode company-shell projectile-rails inflections feature-mode web-mode web-beautify tagedit slim-mode scss-mode sass-mode pug-mode livid-mode skewer-mode simple-httpd json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc helm-css-scss haml-mode emmet-mode company-web web-completion-data company-tern tern coffee-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter diff-hl editorconfig xterm-color shell-pop multi-term eshell-z eshell-prompt-extras esh-help gh-md chruby rvm ruby-tools ruby-test-mode rubocop rspec-mode robe rbenv rake minitest bundler inf-ruby markdown-toc markdown-mode flycheck-pos-tip pos-tip flyspell-correct-helm flyspell-correct auto-dictionary flycheck undohist mmm-mode python simpleclip xclip dtrt-indent smart-tabs-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode company-anaconda anaconda-mode pythonic unfill mwim ranger smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub treepy graphql with-editor disaster company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
+ '(paradox-github-token t))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(default ((t (:background nil)))))
+(defun dotspacemacs/emacs-custom-settings ()
+  "Emacs custom settings.
+This is an auto-generated function, do not modify its content directly, use
+Emacs customize menu instead.
+This function is called at the very end of Spacemacs initialization."
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(flycheck-rtags flycheck-pos-tip pos-tip flycheck mmm-mode python simpleclip xclip dtrt-indent smart-tabs-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode company-anaconda anaconda-mode pythonic unfill mwim ranger smeargle orgit magit-gitflow helm-gitignore helm-company helm-c-yasnippet gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link fuzzy evil-magit magit magit-popup git-commit ghub treepy graphql with-editor disaster company-statistics company-c-headers company cmake-mode clang-format auto-yasnippet yasnippet ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+)
